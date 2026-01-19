@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercise Reference Guide - Tabata</title>
+    <script src="exercise-reference.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #4fc3f7;
+            text-shadow: 0 0 20px rgba(79, 195, 247, 0.3);
+        }
+
+        .subtitle {
+            color: #90a4ae;
+            font-size: 1.1rem;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: rgba(79, 195, 247, 0.2);
+            color: #4fc3f7;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .back-link:hover {
+            background: rgba(79, 195, 247, 0.3);
+        }
+
+        /* Search and Filter */
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .search-box {
+            flex: 1;
+            max-width: 400px;
+            padding: 12px 20px;
+            border: 1px solid rgba(79, 195, 247, 0.3);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #4fc3f7;
+            box-shadow: 0 0 10px rgba(79, 195, 247, 0.3);
+        }
+
+        .search-box::placeholder {
+            color: #78909c;
+        }
+
+        .filter-btn {
+            padding: 10px 18px;
+            border: 1px solid rgba(79, 195, 247, 0.3);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            color: #90a4ae;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .filter-btn:hover {
+            background: rgba(79, 195, 247, 0.1);
+            color: #4fc3f7;
+        }
+
+        .filter-btn.active {
+            background: rgba(79, 195, 247, 0.2);
+            color: #4fc3f7;
+            border-color: #4fc3f7;
+        }
+
+        /* Category Sections */
+        .category-section {
+            margin-bottom: 40px;
+        }
+
+        .category-header {
+            background: linear-gradient(135deg, #37474f, #263238);
+            padding: 15px 25px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .category-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #4fc3f7;
+        }
+
+        .category-count {
+            background: rgba(79, 195, 247, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #4fc3f7;
+        }
+
+        .exercises-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 0 0 12px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: none;
+        }
+
+        /* Exercise Card */
+        .exercise-card {
+            background: linear-gradient(145deg, #1e3a5f 0%, #0d2137 100%);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 1px solid rgba(79, 195, 247, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .exercise-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .exercise-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .exercise-card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .exercise-card-link {
+            color: #4fc3f7;
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+
+        .exercise-card-link:hover {
+            text-decoration: underline;
+        }
+
+        .exercise-card-body {
+            padding: 20px;
+        }
+
+        .animation-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .exercise-animation {
+            width: 120px;
+            height: 100px;
+            color: #4fc3f7;
+        }
+
+        .tips-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .tips-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 0;
+            font-size: 0.9rem;
+            color: #b0bec5;
+            line-height: 1.4;
+        }
+
+        .tips-list li::before {
+            content: "•";
+            color: #4fc3f7;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        /* No results message */
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: #78909c;
+            font-size: 1.1rem;
+        }
+
+        .no-results-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        /* Stats */
+        .stats {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #78909c;
+        }
+
+        .stats strong {
+            color: #4fc3f7;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .exercises-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-box {
+                max-width: none;
+            }
+
+            .filter-buttons {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                justify-content: center;
+            }
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(79, 195, 247, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(79, 195, 247, 0.5);
+        }
+
+        /* Hidden class */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Exercise Reference Guide</h1>
+            <p class="subtitle">Form tips and animations for all Tabata exercises</p>
+            <a href="index.html" class="back-link">← Back to Workout Selector</a>
+        </header>
+
+        <div class="controls">
+            <input type="text" class="search-box" id="searchBox" placeholder="Search exercises...">
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all">All</button>
+            </div>
+        </div>
+
+        <div class="stats" id="stats">
+            Loading exercises...
+        </div>
+
+        <div id="exerciseContent">
+            <!-- Content will be generated by JavaScript -->
+        </div>
+
+        <div class="no-results hidden" id="noResults">
+            <div class="no-results-icon">🔍</div>
+            <p>No exercises found matching your search.</p>
+        </div>
+    </div>
+
+    <script>
+        // Category order for display
+        const categoryOrder = [
+            'Pushups',
+            'Plank Exercises',
+            'Core Rotation',
+            'Back',
+            'Mostly Abs',
+            'Other Core',
+            'Mostly Legs',
+            'Cardio',
+            'Weights Required',
+            'Balance',
+            'Arm-Other'
+        ];
+
+        // Map exercise reference entries to categories
+        const categoryMapping = {
+            'pushups': ['push up', 'slow push up', 'inchworm pushup', 'shortie pushup', 'pike press', 'super pushup', 'shoulder tap', 'renegade row', 'up down plank'],
+            'plank exercises': ['plank crunch', 'low plank', 'side plank', 'raised leg plank', 'wide hold plank', 'plank jack', 'clock plank', 'hamstring walkout', 'tall plank hip extension', 'plank taps', 'jump planks', 'plank punch', 'side crunch plank'],
+            'core rotation': ['side lying rotation', 'upsidedown turtle', 'side scatters with toe touch', 'side plank windmill', 'lawnmowers'],
+            'back': ['superman', 'table', 'glute bridge', 'superman\'s balls'],
+            'mostly abs': ['dead bug', 'bicycle', 'big crunch', 'leg flutter', 'boat', 'v-ups', 'russian twist', 'windshield wipers', 'frog crunch', 'side crunch', 'balanced crunch'],
+            'other core': ['standing obliques', 'standing kte', 'shoulder bridge', 'crab walk', 'crab toe touch', 'jackknife', 'jackknife get ups', 'plank toe touches', 'james bond lunges', 'bird dogs', 'long lever plank', 'copenhagen', 'single leg glute bridge'],
+            'mostly legs': ['squat', 'squat jab', 'sumo squat', 'doggie', 'calf raise', 'curtsy lunge', 'wall sit', 'side lunge', 'single leg romanian deadlift', 'single leg sit down', 'reverse lunge into single leg jump', 'box jump', 'line jumps', 'calf raise squats'],
+            'cardio': ['high knees', 'ass kicker', 'skier', 'skater', 'prance', 'backwards jump', 'jumping jacks', 'mountain climber', 'froggers', 'kite jumping', 'star jumps', 'lizard hops', 'twisted mountain climbers', 'lap', 'suicide', 'burpees'],
+            'weights required': ['dumbbell fly', 'goblet squat', 'hamstring curls', 'v crunch ball', 'rollout', 'dumbbell snatch', 'slams', 'front lift', 'fly', 'bench', 'monkey crunch', 'marky marks', 'shrugs'],
+            'balance': ['tree', 'tree raise', 'balance squat', 'warrior 3'],
+            'arm-other': ['bear crawl', 'chair dip', 'chair dip hop', 'handstand']
+        };
+
+        function initializePage() {
+            const content = document.getElementById('exerciseContent');
+            const filterButtons = document.querySelector('.filter-buttons');
+            let totalExercises = 0;
+
+            // Build category filter buttons
+            categoryOrder.forEach(category => {
+                const btn = document.createElement('button');
+                btn.className = 'filter-btn';
+                btn.dataset.filter = category.toLowerCase();
+                btn.textContent = category;
+                filterButtons.appendChild(btn);
+            });
+
+            // Build exercise cards by category
+            categoryOrder.forEach(category => {
+                const categoryLower = category.toLowerCase();
+                const exercises = categoryMapping[categoryLower] || [];
+
+                if (exercises.length === 0) return;
+
+                const section = document.createElement('div');
+                section.className = 'category-section';
+                section.dataset.category = categoryLower;
+
+                section.innerHTML = `
+                    <div class="category-header">
+                        <span class="category-name">${category}</span>
+                        <span class="category-count">${exercises.length} exercises</span>
+                    </div>
+                    <div class="exercises-grid"></div>
+                `;
+
+                const grid = section.querySelector('.exercises-grid');
+
+                exercises.forEach(exerciseName => {
+                    const card = createExerciseCard(exerciseName);
+                    grid.appendChild(card);
+                    totalExercises++;
+                });
+
+                content.appendChild(section);
+            });
+
+            // Update stats
+            document.getElementById('stats').innerHTML = `
+                <strong>${totalExercises}</strong> exercises across <strong>${categoryOrder.length}</strong> categories
+            `;
+
+            // Set up event listeners
+            setupEventListeners();
+        }
+
+        function createExerciseCard(exerciseName) {
+            const card = document.createElement('div');
+            card.className = 'exercise-card';
+            card.dataset.name = exerciseName.toLowerCase();
+
+            const tips = getExerciseTips(exerciseName);
+
+            const displayName = exerciseName
+                .split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+
+            card.innerHTML = `
+                <div class="exercise-card-header">
+                    <span class="exercise-card-title">${displayName}</span>
+                </div>
+                <div class="exercise-card-body">
+                    <ul class="tips-list">
+                        ${tips.map(tip => `<li>${tip}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+
+            return card;
+        }
+
+        function setupEventListeners() {
+            const searchBox = document.getElementById('searchBox');
+            const filterButtons = document.querySelectorAll('.filter-btn');
+
+            // Search functionality
+            searchBox.addEventListener('input', filterExercises);
+
+            // Filter buttons
+            filterButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    filterButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    filterExercises();
+                });
+            });
+        }
+
+        function filterExercises() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
+            const sections = document.querySelectorAll('.category-section');
+            const noResults = document.getElementById('noResults');
+            let hasVisibleCards = false;
+
+            sections.forEach(section => {
+                const categoryName = section.dataset.category;
+                const cards = section.querySelectorAll('.exercise-card');
+                let visibleInSection = 0;
+
+                // Check if category matches filter
+                const categoryMatches = activeFilter === 'all' || categoryName === activeFilter;
+
+                if (!categoryMatches) {
+                    section.classList.add('hidden');
+                    return;
+                }
+
+                cards.forEach(card => {
+                    const exerciseName = card.dataset.name;
+                    const matchesSearch = exerciseName.includes(searchTerm);
+
+                    if (matchesSearch) {
+                        card.classList.remove('hidden');
+                        visibleInSection++;
+                        hasVisibleCards = true;
+                    } else {
+                        card.classList.add('hidden');
+                    }
+                });
+
+                if (visibleInSection > 0) {
+                    section.classList.remove('hidden');
+                } else {
+                    section.classList.add('hidden');
+                }
+            });
+
+            noResults.classList.toggle('hidden', hasVisibleCards);
+        }
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', initializePage);
+    </script>
+</body>
+</html>
