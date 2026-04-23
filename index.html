@@ -1142,17 +1142,18 @@
             }
 
             .exercise-slot {
-                padding: 12px 15px;
+                padding: 10px 10px;
+                gap: 8px;
             }
 
             .exercise-slot .number {
-                width: 28px;
-                height: 28px;
-                font-size: 0.9rem;
+                width: 26px;
+                height: 26px;
+                font-size: 0.85rem;
             }
 
             .exercise-slot .exercise-name {
-                font-size: 1rem;
+                font-size: 0.95rem;
             }
 
             .exercise-slot .exercise-category {
@@ -1160,13 +1161,13 @@
             }
 
             .exercise-slot .slot-actions {
-                gap: 8px;
+                gap: 4px;
             }
 
             .exercise-slot .slot-btn {
-                width: 36px;
-                height: 36px;
-                font-size: 1rem;
+                width: 28px;
+                height: 28px;
+                font-size: 0.85rem;
             }
 
             /* Control buttons - stack on mobile */
@@ -1410,8 +1411,8 @@
         /* Touch-friendly tap targets */
         @media (hover: none) and (pointer: coarse) {
             .exercise-slot .slot-btn {
-                min-width: 44px;
-                min-height: 44px;
+                min-width: 32px;
+                min-height: 32px;
             }
 
             .timer-btn {
@@ -1801,6 +1802,12 @@
         let megaMoveExercisePool = []; // Pool of enabled exercises for mega move
         let currentMegaMoveExercise = null; // Current exercise in mega move mode
         let nextMegaMoveExercise = null; // Next exercise in mega move mode (for preview)
+        // Anti-repeat tracking for Mega Random Tabata:
+        // - megaMoveUsedNames: lowercased names already picked in the current run (uniqueness rule).
+        // - megaMoveLastCategory: category of the most recent pick (no-consecutive-same-category rule).
+        // Uniqueness is relaxed once the pool is exhausted OR the run has picked 50+ exercises.
+        let megaMoveUsedNames = new Set();
+        let megaMoveLastCategory = null;
 
         // Initialize the app
         function init() {
@@ -1822,12 +1829,10 @@
                     { name: "Pike Press", link: null },
                     { name: "Super Pushup", link: null },
                     { name: "Shoulder Tap", link: null },
-                    { name: "Renegade Row", link: null },
                     { name: "Up Down Plank", link: null }
                 ],
                 "Plank Exercises": [
                     { name: "Plank", link: null },
-                    { name: "Plank Crunch", link: null },
                     { name: "Low Plank", link: null },
                     { name: "Side Plank", link: null },
                     { name: "Raised Leg Plank", link: null },
@@ -2216,18 +2221,19 @@
                 return;
             }
 
-            // Shuffle categories and pick up to 6
-            const shuffledCategories = [...availableCategories].sort(() => Math.random() - 0.5);
+            // Shuffle categories using a proper Fisher–Yates shuffle (not the broken
+            // `sort(() => Math.random() - 0.5)` pattern, which produces biased permutations
+            // because it uses a non-transitive comparator).
+            const shuffledCategories = cryptoShuffle(availableCategories);
             const selectedCategories = shuffledCategories.slice(0, 6);
 
             if (selectedCategories.length < 6) {
                 showWarning(`Only ${selectedCategories.length} categories have enabled exercises. Selecting ${selectedCategories.length} exercises.`);
             }
 
-            // Select one random exercise from each selected category
+            // Select one uniformly random exercise from each selected category.
             selectedExercises = selectedCategories.map(cat => {
-                const randomIndex = Math.floor(Math.random() * cat.exercises.length);
-                const exercise = cat.exercises[randomIndex];
+                const exercise = cat.exercises[cryptoRandInt(cat.exercises.length)];
                 return {
                     name: exercise.name,
                     category: cat.name,
@@ -2359,11 +2365,9 @@
                 return;
             }
 
-            // Pick a random category and exercise
-            const randomCatIndex = Math.floor(Math.random() * availableCategories.length);
-            const selectedCat = availableCategories[randomCatIndex];
-            const randomExIndex = Math.floor(Math.random() * selectedCat.exercises.length);
-            const newExercise = selectedCat.exercises[randomExIndex];
+            // Pick a uniformly random category and exercise using crypto-quality randomness.
+            const selectedCat = availableCategories[cryptoRandInt(availableCategories.length)];
+            const newExercise = selectedCat.exercises[cryptoRandInt(selectedCat.exercises.length)];
 
             selectedExercises[slotIndex] = {
                 name: newExercise.name,
@@ -3041,15 +3045,151 @@
             return enabledExercises;
         }
 
-        // Pick a random exercise from the mega move pool using crypto-quality randomness
-        function pickRandomMegaMoveExercise() {
-            if (megaMoveExercisePool.length === 0) return null;
-            // Use crypto.getRandomValues for uniform distribution
-            const array = new Uint32Array(1);
-            crypto.getRandomValues(array);
-            const randomIndex = array[0] % megaMoveExercisePool.length;
-            return megaMoveExercisePool[randomIndex];
+        // Uniform random integer in [0, max) using crypto.getRandomValues + rejection sampling.
+        // Eliminates the (tiny) modulo bias from `crypto.getRandomValues() % max`, so every
+        // value in [0, max) has EXACTLY probability 1/max.
+        function cryptoRandInt(max) {
+            if (max <= 0) return 0;
+            if (max === 1) return 0;
+            const arr = new Uint32Array(1);
+            // Largest multiple of `max` that fits in Uint32 range (2^32).
+            // Any raw draw >= this threshold is rejected and redrawn, which removes modulo bias.
+            const threshold = Math.floor(0x100000000 / max) * max;
+            let val;
+            do {
+                crypto.getRandomValues(arr);
+                val = arr[0];
+            } while (val >= threshold);
+            return val % max;
         }
+
+        // Fisher–Yates shuffle using cryptographically uniform random integers.
+        // Produces every permutation with equal probability.
+        function cryptoShuffle(arr) {
+            const a = arr.slice();
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = cryptoRandInt(i + 1);
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+        }
+
+        // Pick a random exercise from the mega move pool, enforcing two rules:
+        //   1. No two consecutive picks from the same category (e.g. back → back, balance → balance).
+        //   2. No exercise is repeated within a single run.
+        // Rule 2 (uniqueness) is relaxed when it's no longer satisfiable — specifically when
+        // every pool exercise has already been used, OR once 50+ exercises have been picked
+        // in the run (per user preference: long runs don't need to stay unique).
+        // Rule 1 (category) is only relaxed as a last-resort fallback (e.g. a single-category pool).
+        // Within whatever subset passes the rules, picks are uniformly random via cryptoRandInt.
+        function pickRandomMegaMoveExercise() {
+            const poolSize = megaMoveExercisePool.length;
+            if (poolSize === 0) return null;
+
+            const relaxUniqueness =
+                megaMoveUsedNames.size >= poolSize ||   // pool exhausted
+                megaMoveUsedNames.size >= 50;            // long-run threshold (user spec)
+
+            // Preferred filter: not-used AND not-same-category-as-previous.
+            let candidates = megaMoveExercisePool.filter(ex =>
+                (relaxUniqueness || !megaMoveUsedNames.has(ex.name.toLowerCase())) &&
+                ex.category !== megaMoveLastCategory
+            );
+
+            // Fallback A: uniqueness rule blocks everything in the allowed categories,
+            // but other categories are still available. Drop uniqueness, keep category rule.
+            if (candidates.length === 0) {
+                candidates = megaMoveExercisePool.filter(ex => ex.category !== megaMoveLastCategory);
+            }
+
+            // Fallback B (last resort): pool is effectively one category, or single item.
+            // Drop the category rule so we still return something.
+            if (candidates.length === 0) {
+                candidates = megaMoveExercisePool;
+            }
+
+            const picked = candidates[cryptoRandInt(candidates.length)];
+            megaMoveUsedNames.add(picked.name.toLowerCase());
+            megaMoveLastCategory = picked.category;
+            return picked;
+        }
+
+        // Diagnostic 1: pure uniformity test.
+        // Resets anti-repeat state before every pick so we measure raw pick fairness.
+        // Open DevTools console and run: testMegaMoveRandomness(10000)
+        window.testMegaMoveRandomness = function(trials = 10000) {
+            if (!megaMoveExercisePool || megaMoveExercisePool.length === 0) {
+                megaMoveExercisePool = getAllEnabledExercises();
+            }
+            const counts = {};
+            megaMoveExercisePool.forEach(e => { counts[e.name] = 0; });
+            for (let i = 0; i < trials; i++) {
+                // Reset state each iteration to measure *raw* pick probability
+                // (the real picker constrains successive picks, so without a reset the
+                // distribution would reflect those constraints rather than base uniformity).
+                megaMoveUsedNames = new Set();
+                megaMoveLastCategory = null;
+                const pick = pickRandomMegaMoveExercise();
+                counts[pick.name]++;
+            }
+            const expected = trials / megaMoveExercisePool.length;
+            const rows = Object.entries(counts)
+                .map(([name, count]) => ({
+                    name,
+                    count,
+                    expected: expected.toFixed(1),
+                    deviationPct: ((count - expected) / expected * 100).toFixed(2) + '%'
+                }))
+                .sort((a, b) => b.count - a.count);
+            console.table(rows);
+            console.log(`Pool size: ${megaMoveExercisePool.length}, trials: ${trials}, expected per exercise: ${expected.toFixed(1)}`);
+            // Restore state after test so a subsequent workout starts clean.
+            megaMoveUsedNames = new Set();
+            megaMoveLastCategory = null;
+            return rows;
+        };
+
+        // Diagnostic 2: verify the anti-repeat rules hold over many simulated runs.
+        // Open DevTools console and run: testMegaMoveRules(1000, 24)  // 1000 runs of 24 picks each
+        // Reports: any consecutive-same-category violations, any in-run duplicate violations
+        // (while pool/usage stayed within uniqueness-enforcement range).
+        window.testMegaMoveRules = function(runs = 1000, picksPerRun = 24) {
+            if (!megaMoveExercisePool || megaMoveExercisePool.length === 0) {
+                megaMoveExercisePool = getAllEnabledExercises();
+            }
+            const poolSize = megaMoveExercisePool.length;
+            let consecutiveCategoryViolations = 0;
+            let unexpectedDuplicates = 0;
+
+            for (let r = 0; r < runs; r++) {
+                megaMoveUsedNames = new Set();
+                megaMoveLastCategory = null;
+                const seen = new Set();
+                let prevCategory = null;
+                for (let p = 0; p < picksPerRun; p++) {
+                    const pick = pickRandomMegaMoveExercise();
+                    if (prevCategory !== null && pick.category === prevCategory) {
+                        // Only a violation if more than one category exists in the pool
+                        const categories = new Set(megaMoveExercisePool.map(e => e.category));
+                        if (categories.size > 1) consecutiveCategoryViolations++;
+                    }
+                    const key = pick.name.toLowerCase();
+                    // Duplicate is only unexpected while uniqueness should still be enforced:
+                    // seen.size < poolSize  AND  seen.size < 50
+                    if (seen.has(key) && seen.size < poolSize && seen.size < 50) {
+                        unexpectedDuplicates++;
+                    }
+                    seen.add(key);
+                    prevCategory = pick.category;
+                }
+            }
+            console.log(`Ran ${runs} runs × ${picksPerRun} picks (pool size: ${poolSize})`);
+            console.log(`Consecutive-same-category violations: ${consecutiveCategoryViolations} (expected: 0)`);
+            console.log(`Unexpected in-run duplicates: ${unexpectedDuplicates} (expected: 0)`);
+            megaMoveUsedNames = new Set();
+            megaMoveLastCategory = null;
+            return { consecutiveCategoryViolations, unexpectedDuplicates };
+        };
 
         // Start mega move circuit - random exercise each interval
         async function startMegaMoveCircuit() {
@@ -3083,7 +3223,15 @@
             // Set mega move mode
             megaMoveMode = true;
 
-            // Pick first exercise and preview next exercise
+            // Reset anti-repeat tracking for a fresh run:
+            //  - clear the used-name set (uniqueness rule starts over)
+            //  - clear last-category so the very first pick has no category constraint
+            megaMoveUsedNames = new Set();
+            megaMoveLastCategory = null;
+
+            // Pick first exercise and preview next exercise.
+            // The picker automatically enforces: no consecutive same category, and
+            // no repeats within the run (until pool/50-pick threshold is exceeded).
             currentMegaMoveExercise = pickRandomMegaMoveExercise();
             nextMegaMoveExercise = pickRandomMegaMoveExercise();
 
@@ -3443,6 +3591,9 @@
             megaMoveExercisePool = [];
             currentMegaMoveExercise = null;
             nextMegaMoveExercise = null;
+            // Clear anti-repeat tracking so the next run starts fresh.
+            megaMoveUsedNames = new Set();
+            megaMoveLastCategory = null;
 
             // Hide overlay
             document.getElementById('timerOverlay').classList.remove('active');
